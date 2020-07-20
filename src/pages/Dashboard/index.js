@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Text, View, StyleSheet, TouchableOpacity } from 'react-native'
+import { Text, View, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import getRealm from '../../services/realm'
-import { format } from 'date-fns'
 
 import Clock from '../../assets/clock.svg'
 import Trash from '../../assets/trash-2.svg'
@@ -10,27 +9,69 @@ import Plus from '../../assets/plus.svg'
 
 import { RectButton } from 'react-native-gesture-handler'
 
+const Updated = () => {
+  return new Promise(resolve => {
+    setTimeout(resolve, 1000)
+  })
+}
+
 const Dashboard = () => {
   const [storaged, setStoraged] = useState([])
+  const [update, setUpdate] = useState(false)
+
   const navigation = useNavigation()
 
   useEffect(() => {
-    async function loadDatabase() {
-      const realm = await getRealm()
+    let interval = null;
+    interval = setInterval(() => {
+      async function loadDatabase() {
+        const realm = await getRealm()
+  
+        const data = realm.objects('ToDo')
+  
+        setStoraged(data)
+      }
+      loadDatabase()
 
-      const data = realm.objects('ToDo')
+      setUpdate(update ? false : true)
+    }, 300);
+    
+    return () => clearInterval(interval);
+  }, [update]);
 
-      setStoraged(data)
-    }
-    loadDatabase()
-  }, [])
 
   function handleNavigateToAdd() {
     navigation.navigate('Add')
   }
 
-  function handleNavigateToCronometro() {
-    navigation.navigate('Cronometro')
+  function handleNavigateToCronometro(data) {
+    navigation.navigate('Cronometro', { title: data.title })
+  }
+
+  function handleDelete(data) {
+    Alert.alert('Are you sure?', '', [
+      {
+        text: 'Sim',
+        onPress: () => deleteData(data)
+      },
+      {
+        text: 'Não',
+        onPress: () => {}
+      }
+    ])
+
+    async function deleteData(data) {
+      const realm = await getRealm()
+
+      let result = realm.objects('ToDo').find(row => row.title === data.title)
+
+      realm.write(() => {
+        realm.delete(result)
+      })
+
+      setUpdate(true)
+      Updated().then(() => setUpdate(false))
+    }
   }
 
   return (
@@ -40,34 +81,39 @@ const Dashboard = () => {
       </View>
 
       <View style={styles.containerAllContent}>
-        {storaged && storaged.map((data) => (
+        <ScrollView contentContainerStyle={styles.containerScrollView}>
+          {storaged && storaged.map((data) => (
             <View key={data.title} style={styles.containerContent}>
               <View style={styles.topContent}>
                 <Text style={styles.textContent}>{data.title}</Text>
-                <RectButton onPress={handleNavigateToCronometro}>
+                <RectButton onPress={() => handleNavigateToCronometro(data)}>
                   <Clock style={styles.clockImage}/>
                 </ RectButton>
               </View>
               <View style={styles.endContent}>
                 <View>
-                  <Text style={styles.textDateEndContent}>{data.dateInitial} - {data.dateEnd}</Text>
+                  <Text style={styles.textDateEndContent}>{
+                    data.dateInitial.substring(0, 5).replace('-', '/')} - {data.dateEnd.substring(0, 5).replace('-', '/')
+                  }</Text>
                 </View>
                 <View style={styles.endRightContent}>
                   <Text style={styles.textTimeEndContent}>
-                    {data.seconds}
                     {Math.floor(data.seconds/3600)}h
-                    {Math.floor((data.seconds % 3600) / 60)}m
+                    {Math.floor((data.seconds % 3600) / 60) === 0 ? '' : `${Math.floor((data.seconds % 3600) / 60)}m`}
                     </Text>
-                  <Trash style={styles.trashImage}/>
+                  <TouchableOpacity onPress={() => {handleDelete(data)}}>
+                    <Trash style={styles.trashImage}/>
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>  
           ))} 
-        
+          
 
-        <TouchableOpacity onPress={handleNavigateToAdd}>
-          <Plus style={styles.plusImage}/>  
-        </TouchableOpacity>
+          <TouchableOpacity onPress={handleNavigateToAdd}>
+            <Plus style={styles.plusImage}/>  
+          </TouchableOpacity>
+        </ScrollView>
       </View>
     </View>
   )
@@ -86,16 +132,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
+  containerAllContent: {
+    flex: 1,
+  },
+
+  containerScrollView: {
+    alignItems: 'center'
+  },
+
   textTop: {
     color: '#FFF',
     fontSize: 36,
     fontWeight: 'bold',
     marginLeft: 40,
-  },
-
-  containerAllContent: {
-    flex: 1,
-    alignItems: 'center'
   },
 
   containerContent: {

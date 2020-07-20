@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react'
-import { Text, TouchableOpacity, StyleSheet, View, StatusBar, AsyncStorage } from 'react-native'
+import { Text, TouchableOpacity, StyleSheet, View, StatusBar, Alert } from 'react-native'
 
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation, useRoute } from '@react-navigation/native'
+
+import getRealm from '../../services/realm'
 
 const Cronometro = () => {
   const navigation = useNavigation()
   const [seconds, setSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
-  const [text, setText] = useState('')
+
+  const route = useRoute()
+
+  const { title } = route.params
 
   function toggle() {
     setIsActive(!isActive);
@@ -24,9 +29,7 @@ const Cronometro = () => {
       interval = setInterval(() => {
         setSeconds(seconds => seconds + 1);
       }, 1000);
-    } else if (!isActive && seconds !== 0) {
-      clearInterval(interval);
-    }
+    } 
     return () => clearInterval(interval);
   }, [isActive, seconds]);
 
@@ -34,7 +37,35 @@ const Cronometro = () => {
     if (isActive) {
       return;
     }
-    navigation.navigate('Dashboard')
+
+    Alert.alert('Are you sure?', '', [
+      {
+        text: 'Sim',
+        onPress: () => handleNavigate()
+      },
+      {
+        text: 'Não',
+        onPress: () => {}
+      }
+    ])
+
+    async function handleNavigate() {
+      const realm = await getRealm()
+
+      const result = realm.objects('ToDo').find(row => row.title === title)
+
+      realm.write(() => {
+        result.seconds -= seconds + 1000000000
+
+        // Verificando se o número ficou negativo, se sim, ele parabeniza e deleta o arquivo
+        if (result.seconds <= 0) {
+          Alert.alert("Parabéns! Você concluiu essa atividade")
+          realm.delete(result)
+        }
+      })
+
+      navigation.navigate('Dashboard')
+    }
   }
 
   return (

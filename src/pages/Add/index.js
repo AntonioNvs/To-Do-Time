@@ -16,9 +16,11 @@ const Add = () => {
   const [storaged, setStoraged] = useState({
     title: '',
     dateInitial: format(new Date(), 'dd-MM-yyyy'),
-    dateEnd: format(addDays(new Date(), 1), 'dd-MM-yyyy'),
+    dateEnd: format(new Date(), 'dd-MM-yyyy'),
     seconds: 0
   })
+  const [isActived, setIsActived] = useState(false)
+  const [time, setTime] = useState(new Date())
 
   const navigation = useNavigation()
 
@@ -29,16 +31,46 @@ const Add = () => {
   async function saveDatabase() {
     const realm = await getRealm()
 
+    // Existe algum titulo?
+    if(storaged.title === '') {
+      return "Title not exist"
+    }
+
+    // Colocando como a primeira letra do título obrigatoriamente maiuscula
+    const newTitle = storaged.title.trim()
+
+    // O título do input, já existe?
+    let result = realm.objects('ToDo').find(row => row.title === newTitle)
+
+    if (result) {
+      return "This title already exists"
+    }
+
+    // Transformando o time em seconds
+    const newSeconds = (time.getHours() * 3600) + (time.getMinutes() * 60)
+
+    
     realm.write(() => {
-      realm.create('ToDo', storaged)
+      realm.create('ToDo', {
+        title: newTitle,
+        dateEnd: storaged.dateEnd,
+        dateInitial: storaged.dateInitial,
+        seconds: newSeconds
+      })
     })
+
+    return "Right";
   }
 
   async function handleSubmit() {
     try {
-      Alert.alert(storaged.seconds)
 
-      await saveDatabase()
+      const result = await saveDatabase()
+
+      if(result !== "Right") {
+        Alert.alert(result)
+        return;
+      }
     } catch (err) {
       Alert.alert(String(err))
     }
@@ -46,18 +78,7 @@ const Add = () => {
     navigation.navigate('Dashboard')
   }
   async function handleTime() {
-    try {
-      const { action, hour, minute } = await TimePickerAndroid.open({
-        hour: 14,
-        minute: 0,
-        is24Hour: false // Will display '2 PM'
-      });
-      if (action !== TimePickerAndroid.dismissedAction) {
-        Alert.alert(String(hour, minute))
-      }
-    } catch ({ code, message }) {
-      console.warn('Cannot open time picker', message);
-    }
+    setIsActived(true)
   }
 
   return (
@@ -83,7 +104,7 @@ const Add = () => {
           </View>
 
           <View style={styles.date}>
-            <Text style={styles.textTitle}>Initial</Text>
+            {/* <Text style={styles.textTitle}>Initial</Text>
               <DatePicker 
                 style={{ width: '100%', alignItems: 'center', marginTop: 12 }}
                 format="DD-MM-YYYY"
@@ -108,14 +129,14 @@ const Add = () => {
                 onDateChange={date => {
                    setStoraged({...storaged, dateInitial: date})
                  }}
-              />
-            <Text style={styles.textTitle}>End</Text>
+              /> */}
+            <Text style={styles.textTitle}>Date end</Text>
               <DatePicker 
                 style={{ marginTop: 12, width: '100%', alignItems: 'center' }}
                 format="DD-MM-YYYY"
                 mode="date"
                 placeholder={storaged.dateEnd}
-                minDate={addDays(new Date, 1) }
+                minDate={addDays(new Date(), 1) }
                 customStyles={{
                   dateIcon: {
                     position: 'absolute',
@@ -141,7 +162,25 @@ const Add = () => {
             style={styles.timeContainer}
           >
             <Clock style={{ color: '#64DF18'}}/>
-            <TextInput style={styles.textInputTime} />
+            <TextInput 
+              style={styles.textInputTime} 
+              editable={false}
+              placeholder={`${time.getHours()}:${time.getMinutes()}`}
+            />
+            {isActived && (
+              <DateTimePicker
+                testID="dateTimePicker"
+                value={time}
+                mode="time"
+                minuteInterval={10}
+                is24Hour={true}
+                display="spinner"
+                onChange={(event, date) => {
+                  setIsActived(false) 
+                  setTime(date)
+                }}
+              />
+            )}
           </TouchableOpacity>
           
           <View style={styles.buttonContainer}>
