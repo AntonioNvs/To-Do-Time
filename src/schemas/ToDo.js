@@ -2,8 +2,8 @@ export default ToDo = {
   name: 'ToDo',
   properties: {
     title: 'string',
-    dateInitial: 'string',
-    dateEnd: 'string',
+    dateInitial: 'date',
+    dateEnd: 'date',
     seconds: 'int'
   }
 }

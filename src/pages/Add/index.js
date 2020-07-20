@@ -2,8 +2,6 @@ import React, { useState } from 'react'
 import { Text, View, StyleSheet, TextInput, TouchableOpacity, StatusBar, Alert} from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 
-import DatePicker from 'react-native-datepicker';
-
 import { addDays, format } from 'date-fns'
 import getRealm from '../../services/realm'
 import DateTimePicker from '@react-native-community/datetimepicker'
@@ -11,16 +9,18 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 import ArrowLeft from '../../assets/arrow-left.svg'
 import Send from '../../assets/send.svg'
 import Clock from '../../assets/clockBig.svg'
+import Calendar from '../../assets/calendar.svg'
 
 const Add = () => {
   const [storaged, setStoraged] = useState({
     title: '',
-    dateInitial: format(new Date(), 'dd-MM-yyyy'),
-    dateEnd: format(new Date(), 'dd-MM-yyyy'),
+    dateEnd: new Date(),
     seconds: 0
   })
-  const [isActived, setIsActived] = useState(false)
+  const [isTimeActived, setIsTimeActived] = useState(false)
+  const [isDateActived, setIsDateActived] = useState(false)
   const [time, setTime] = useState(new Date())
+  const [date, setDate] = useState(new Date())
 
   const navigation = useNavigation()
 
@@ -53,8 +53,8 @@ const Add = () => {
     realm.write(() => {
       realm.create('ToDo', {
         title: newTitle,
-        dateEnd: storaged.dateEnd,
-        dateInitial: storaged.dateInitial,
+        dateInitial: new Date(),
+        dateEnd: date,
         seconds: newSeconds
       })
     })
@@ -77,8 +77,12 @@ const Add = () => {
 
     navigation.navigate('Dashboard')
   }
-  async function handleTime() {
-    setIsActived(true)
+  function handleTime() {
+    setIsTimeActived(true)
+  }
+
+  function handleCalendar() {
+    setIsDateActived(true)
   }
 
   return (
@@ -97,66 +101,38 @@ const Add = () => {
           <View style={styles.title}>
             <Text style={styles.textTitle}>Title</Text>
             <TextInput 
-              style={styles.textInpuTitle} 
+              style={styles.textInputTitle} 
               maxLength={60}
-              onChangeText={text => setStoraged({...storaged, title: text})} 
+              onChangeText={text => setStoraged({...storaged, title: text})}
             />
           </View>
 
           <View style={styles.date}>
-            {/* <Text style={styles.textTitle}>Initial</Text>
-              <DatePicker 
-                style={{ width: '100%', alignItems: 'center', marginTop: 12 }}
-                format="DD-MM-YYYY"
-                mode="date"
-                placeholder={storaged.dateInitial}
-                minDate={new Date()}
-                customStyles={{
-                  dateIcon: {
-                    position: 'absolute',
-                    left: 0,
-                    marginLeft: 0,
-                  },
-                  dateInput: {
-                    marginLeft: 64,
-                    width: 200,
-                    padding: 12,
-                    backgroundColor: '#EFEFEF',
-                    borderRadius: 8,
-                    borderColor: '#ffff',
-                  },
-                }}
-                onDateChange={date => {
-                   setStoraged({...storaged, dateInitial: date})
-                 }}
-              /> */}
             <Text style={styles.textTitle}>Date end</Text>
-              <DatePicker 
-                style={{ marginTop: 12, width: '100%', alignItems: 'center' }}
-                format="DD-MM-YYYY"
-                mode="date"
-                placeholder={storaged.dateEnd}
-                minDate={addDays(new Date(), 1) }
-                customStyles={{
-                  dateIcon: {
-                    position: 'absolute',
-                    left: 0,
-                    marginLeft: 0,
-                  },
-                  dateInput: {
-                    marginLeft: 64,
-                    width: 200,
-                    padding: 12,
-                    backgroundColor: '#EFEFEF',
-                    borderRadius: 8,
-                    borderColor: '#ffff',
-                  },
-                }}
-                onDateChange={date => {
-                  setStoraged({...storaged, dateEnd: date })
-                }}
-              />
+              <TouchableOpacity style={styles.calendar} onPress={handleCalendar}>
+                <Calendar style={{ color: '#64DF18', marginLeft: 12}}/>
+                <TextInput 
+                  style={styles.textInputDate}
+                  editable={false}
+                  placeholder={format(date, 'dd/M/yyyy')}
+                />
+                { isDateActived && (
+                  <DateTimePicker
+                    minimumDate={new Date()}
+                    testID="dateTimePicker"
+                    value={date}
+                    mode="date"
+                    minuteInterval={10}
+                    is24Hour={true}
+                    display="default"
+                    onChange={(event, date) => {
+                      setIsDateActived(false) 
+                      setDate(date)
+                    }}
+                />)}
+              </TouchableOpacity>
           </View>
+
           <TouchableOpacity
             onPress={handleTime} 
             style={styles.timeContainer}
@@ -167,7 +143,7 @@ const Add = () => {
               editable={false}
               placeholder={`${time.getHours()}:${time.getMinutes()}`}
             />
-            {isActived && (
+            {isTimeActived && (
               <DateTimePicker
                 testID="dateTimePicker"
                 value={time}
@@ -176,7 +152,7 @@ const Add = () => {
                 is24Hour={true}
                 display="spinner"
                 onChange={(event, date) => {
-                  setIsActived(false) 
+                  setIsTimeActived(false) 
                   setTime(date)
                 }}
               />
@@ -235,7 +211,26 @@ const styles = StyleSheet.create({
     color: '#64DF18'
   },
 
-  textInpuTitle: {
+  calendar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12
+  },
+
+  textInputDate: {
+    marginLeft: 40,
+    backgroundColor: '#EFEFEF',
+    borderRadius: 8,
+    padding: 8,
+    flex: 1,
+    textAlign: 'center',
+    
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#3b3b3a'
+  },
+
+  textInputTitle: {
     marginTop: 8,
     backgroundColor: '#EFEFEF',
     borderRadius: 8,

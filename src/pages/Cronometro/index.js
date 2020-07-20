@@ -55,7 +55,7 @@ const Cronometro = () => {
       const result = realm.objects('ToDo').find(row => row.title === title)
 
       realm.write(() => {
-        result.seconds -= seconds + 1000000000
+        result.seconds -= seconds
 
         // Verificando se o número ficou negativo, se sim, ele parabeniza e deleta o arquivo
         if (result.seconds <= 0) {
