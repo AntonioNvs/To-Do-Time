@@ -3,10 +3,10 @@ import { Text, View, StyleSheet, TextInput, TouchableOpacity, StatusBar, Alert} 
 import { useNavigation } from '@react-navigation/native'
 
 import DatePicker from 'react-native-datepicker';
-import TimePicker from 'react-native-24h-timepicker';
 
 import { addDays, format } from 'date-fns'
 import getRealm from '../../services/realm'
+import DateTimePicker from '@react-native-community/datetimepicker'
 
 import ArrowLeft from '../../assets/arrow-left.svg'
 import Send from '../../assets/send.svg'
@@ -15,11 +15,10 @@ import Clock from '../../assets/clockBig.svg'
 const Add = () => {
   const [storaged, setStoraged] = useState({
     title: '',
-    dateInitial: format(new Date(), 'dd/mm/yyyy'),
-    dateEnd: format(addDays(new Date(), 1), 'dd/mm/yyyy'),
+    dateInitial: format(new Date(), 'dd-MM-yyyy'),
+    dateEnd: format(addDays(new Date(), 1), 'dd-MM-yyyy'),
     seconds: 0
   })
-  const [showTimer, setShowTimer] = useState(false)
 
   const navigation = useNavigation()
 
@@ -45,6 +44,20 @@ const Add = () => {
     }
 
     navigation.navigate('Dashboard')
+  }
+  async function handleTime() {
+    try {
+      const { action, hour, minute } = await TimePickerAndroid.open({
+        hour: 14,
+        minute: 0,
+        is24Hour: false // Will display '2 PM'
+      });
+      if (action !== TimePickerAndroid.dismissedAction) {
+        Alert.alert(String(hour, minute))
+      }
+    } catch ({ code, message }) {
+      console.warn('Cannot open time picker', message);
+    }
   }
 
   return (
@@ -74,7 +87,7 @@ const Add = () => {
               <DatePicker 
                 style={{ width: '100%', alignItems: 'center', marginTop: 12 }}
                 format="DD-MM-YYYY"
-                mode="clock"
+                mode="date"
                 placeholder={storaged.dateInitial}
                 minDate={new Date()}
                 customStyles={{
@@ -93,8 +106,8 @@ const Add = () => {
                   },
                 }}
                 onDateChange={date => {
-                  setStoraged({...storaged, dateInitial: date})
-                }}
+                   setStoraged({...storaged, dateInitial: date})
+                 }}
               />
             <Text style={styles.textTitle}>End</Text>
               <DatePicker 
@@ -123,20 +136,12 @@ const Add = () => {
                 }}
               />
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
+            onPress={handleTime} 
             style={styles.timeContainer}
-            onPress={() => {
-              setShowTimer(true)
-            }}
           >
             <Clock style={{ color: '#64DF18'}}/>
-            <TextInput style={styles.textInputTime} placeholder={storaged.seconds} />
-            <TimePicker 
-              onConfirm={(hour, minute) => {
-                setStoraged({...storaged, seconds: hour * 3600 + minute * 60})
-              }}
-            />
-
+            <TextInput style={styles.textInputTime} />
           </TouchableOpacity>
           
           <View style={styles.buttonContainer}>

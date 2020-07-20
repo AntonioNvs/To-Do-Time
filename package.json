@@ -16,7 +16,6 @@
     "date-fns": "^2.15.0",
     "react": "16.13.1",
     "react-native": "0.63.1",
-    "react-native-24h-timepicker": "^1.1.0",
     "react-native-datepicker": "^1.7.2",
     "react-native-gesture-handler": "^1.6.1",
     "react-native-reanimated": "^1.9.0",
